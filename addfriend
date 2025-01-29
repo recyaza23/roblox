@@ -4,7 +4,7 @@ local LocalPlayer = Players.LocalPlayer
 -- Settings
 local RETRY_DELAY = 1 -- Delay between friend request attempts
 local CHECK_INTERVAL = 600 -- Check for new players every 10 minutes (600 seconds)
-local MAX_RETRIES = 3 -- Maximum retries for failed requests
+local MAX_RETRIES = 2 -- Maximum retries for failed requests
 
 -- Store already processed players
 local processedPlayers = {}
