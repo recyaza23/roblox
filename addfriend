@@ -12,44 +12,44 @@ local processedPlayers = {}
 -- Function to send friend request with retry
 local function sendFriendRequest(player)
     if not player or not player:IsA("Player") then return end
-    
+
     -- Skip if already processed
     if processedPlayers[player.UserId] then
         return
     end
-    
+
     -- Skip local player
     if player == LocalPlayer then
         processedPlayers[player.UserId] = true
         return
     end
-    
+
     local retryCount = 0
     local success = false
-    
+
     repeat
         local ok, err = pcall(function()
             -- Send friend request
             LocalPlayer:RequestFriendship(player)
         end)
-        
+
         if ok then
             success = true
             processedPlayers[player.UserId] = true
             print("Friend request sent to:", player.Name)
         else
             retryCount = retryCount + 1
-            print("Failed to send friend request to:", player.Name, "Attempt:", retryCount)
+            warn("Failed to send friend request to:", player.Name, "Attempt:", retryCount, "Error:", err)
             task.wait(RETRY_DELAY)
         end
     until success or retryCount >= MAX_RETRIES
-    
+
     -- Add to processed list even if failed after max retries
     if not success then
         processedPlayers[player.UserId] = true
-        print("Max retries reached for:", player.Name)
+        warn("Max retries reached for:", player.Name)
     end
-    
+
     task.wait(RETRY_DELAY) -- Delay between players
 end
 
@@ -57,14 +57,14 @@ end
 local function processServer()
     print("Checking for new players to friend...")
     local playersProcessed = 0
-    
+
     for _, player in pairs(Players:GetPlayers()) do
         if not processedPlayers[player.UserId] then
             sendFriendRequest(player)
             playersProcessed = playersProcessed + 1
         end
     end
-    
+
     print(string.format("Server scan complete. Processed %d new players", playersProcessed))
 end
 
