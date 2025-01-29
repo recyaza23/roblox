@@ -1,0 +1,84 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Settings
+local RETRY_DELAY = 1 -- Delay between friend request attempts
+local CHECK_INTERVAL = 600 -- Check for new players every 10 minutes (600 seconds)
+local MAX_RETRIES = 3 -- Maximum retries for failed requests
+
+-- Store already processed players
+local processedPlayers = {}
+
+-- Function to send friend request with retry
+local function sendFriendRequest(player)
+    if not player or not player:IsA("Player") then return end
+    
+    -- Skip if already processed
+    if processedPlayers[player.UserId] then
+        return
+    end
+    
+    -- Skip local player
+    if player == LocalPlayer then
+        processedPlayers[player.UserId] = true
+        return
+    end
+    
+    local retryCount = 0
+    local success = false
+    
+    repeat
+        local ok, err = pcall(function()
+            -- Send friend request
+            LocalPlayer:RequestFriendship(player)
+        end)
+        
+        if ok then
+            success = true
+            processedPlayers[player.UserId] = true
+            print("Friend request sent to:", player.Name)
+        else
+            retryCount = retryCount + 1
+            print("Failed to send friend request to:", player.Name, "Attempt:", retryCount)
+            task.wait(RETRY_DELAY)
+        end
+    until success or retryCount >= MAX_RETRIES
+    
+    -- Add to processed list even if failed after max retries
+    if not success then
+        processedPlayers[player.UserId] = true
+        print("Max retries reached for:", player.Name)
+    end
+    
+    task.wait(RETRY_DELAY) -- Delay between players
+end
+
+-- Function to process all players in server
+local function processServer()
+    print("Checking for new players to friend...")
+    local playersProcessed = 0
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if not processedPlayers[player.UserId] then
+            sendFriendRequest(player)
+            playersProcessed = playersProcessed + 1
+        end
+    end
+    
+    print(string.format("Server scan complete. Processed %d new players", playersProcessed))
+end
+
+-- Handle new players joining
+Players.PlayerAdded:Connect(function(player)
+    print("New player joined:", player.Name)
+    sendFriendRequest(player)
+end)
+
+-- Initial process of current server
+processServer()
+
+-- Set up periodic check
+while true do
+    task.wait(CHECK_INTERVAL)
+    processServer()
+end
